@@ -84,6 +84,9 @@ jobs:
       needs: docker
       environment:
         name: development
+      env:
+          NAMESPACE: development
+          REPLICAS: 2
       steps:
         - name: Checkout Repository
           uses: actions/checkout@v4
@@ -93,5 +96,19 @@ jobs:
         - uses: azure/k8s-set-context@v3
           with:
             method: kubeconfig  
-            kubeconfig: ${{secrets.KUBECONFIG}}
+            kubeconfig: ${{ secrets.KUBECONFIG }}
         - run: kubectl version --short -o yaml
+        - name: fetch ingress ip
+          run: |
+            echo "INGRESS_IP=$(kubectl -n ingress-nginx get services ingress-nginx-controller -o jsonpath="{.status.loadBalancer.ingress[0].ip}")" >> $GITHUB_ENV
+        - uses: cschleiden/replace-tokens
+          with:
+            tokenPrefix: "_{_"
+            tokenSuffix: "_}_"
+            files: '["kubernetes/development/*.yaml"]'
+          env:
+            NAMESPACE: ${{ vars.NAMESPACE}}
+            REPLICAS: ${{ vars.REPLICAS}}
+            IMAGE: ${{ vars.DOCKERHUB_USERNAME }}/solar-system:${{github.sha}}
+            INGRESS_IP: ${{ vars.INGRESS_IP}}
+        - run:  cat kubernetes/development/*.yaml
