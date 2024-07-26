@@ -85,6 +85,8 @@ jobs:
       environment:
         name: development
       steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v4
         - uses: azure/setup-kubectl@v3
           with:
             version: 'v1.26.0'
